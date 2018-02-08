@@ -20,9 +20,19 @@ RUN apt-get update && apt-get install -y \
 RUN usermod -u 1000 www-data
 
 #COpy config
-COPY www.conf /etc/php/7.0/fpm/pool.d/www.conf
-COPY nginx.conf /etc/nginx/nginx.conf
-COPY upstream.conf /etc/nginx/conf.d/upstream.conf
+COPY php7_fpm_conf/www.conf /etc/php/7.0/fpm/pool.d/www.conf
+COPY nginx_config/nginx.conf /etc/nginx/nginx.conf
+COPY nginx_config/upstream.conf /etc/nginx/conf.d/upstream.conf
+
+#ssh key for clone bitbucket
+RUN mkdir -p ~/.ssh
+RUN chown -R root:root ~/.ssh
+RUN ssh-keyscan -t rsa bitbucket.org >> ~/.ssh/known_hosts
+COPY bitbucket_config/id_rsa /root/.ssh/id_rsa
+COPY bitbucket_config/id_rsa.pub /root/.ssh/id_rsa.pub
+COPY bitbucket_config/config /root/.ssh/config
+RUN chmod 0600 ~/.ssh/*
+RUN chmod 0700 ~/.ssh
 
 #Turn off daemon
 CMD ["nginx", "-g", "daemon off;"]	
@@ -44,3 +54,12 @@ RUN curl -s -f -L -o /tmp/installer.php https://raw.githubusercontent.com/compos
  && php /tmp/installer.php --no-ansi --install-dir=/usr/bin --filename=composer --version=${COMPOSER_VERSION} \
  && composer --ansi --version --no-interaction \
  && rm -rf /tmp/* /tmp/.htaccess
+
+#Clone B2B Project
+WORKDIR /opt
+RUN git clone git@bitbucket.org:mobivi/b2b-web.git
+RUN git clone git@bitbucket.org:mobivi/b2b-collection.git
+RUN git clone git@bitbucket.org:mobivi/b2b-em-billing.git
+RUN git clone git@bitbucket.org:mobivi/b2b-em-management.git
+RUN git clone git@bitbucket.org:mobivi/b2b-job-schedule
+RUN git clone git@bitbucket.org:mobivi/b2b-notification
